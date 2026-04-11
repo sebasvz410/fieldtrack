@@ -1,137 +1,33 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import FormularioVisita from './FormularioVisita'
+import DashboardSupervisor from './DashboardSupervisor'
 
 function App() {
-  const [form, setForm] = useState({
-    vendedor: '',
-    cliente: '',
-    resultado: '',
-    monto: '',
-    notas: ''
-  })
-  const [mensaje, setMensaje] = useState('')
-  const [cargando, setCargando] = useState(false)
-
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setCargando(true)
-    setMensaje('')
-
-    const { error } = await supabase.from('visits').insert([{
-      notes: form.notas,
-      result: form.resultado,
-      amount: form.monto ? parseFloat(form.monto) : null,
-      visited_at: new Date().toISOString()
-    }])
-
-    if (error) {
-      setMensaje('Error al guardar: ' + error.message)
-    } else {
-      setMensaje('Visita registrada correctamente!')
-      setForm({ vendedor: '', cliente: '', resultado: '', monto: '', notas: '' })
-    }
-    setCargando(false)
-  }
+  const [pantalla, setPantalla] = useState('formulario')
 
   return (
-    <div style={{ maxWidth: '500px', margin: '40px auto', fontFamily: 'sans-serif', padding: '0 20px' }}>
-      <h1 style={{ fontSize: '24px', marginBottom: '8px' }}>FieldTrack</h1>
-      <p style={{ color: '#666', marginBottom: '24px' }}>Registrar nueva visita</p>
-
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-            Vendedor *
-          </label>
-          <input
-            name="vendedor"
-            value={form.vendedor}
-            onChange={handleChange}
-            placeholder="Tu nombre"
-            required
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-            Cliente *
-          </label>
-          <input
-            name="cliente"
-            value={form.cliente}
-            onChange={handleChange}
-            placeholder="Nombre del cliente"
-            required
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-            Resultado *
-          </label>
-          <select
-            name="resultado"
-            value={form.resultado}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
-          >
-            <option value="">Seleccionar...</option>
-            <option value="venta">Venta</option>
-            <option value="cotizacion">Cotización</option>
-            <option value="no_interesado">No interesado</option>
-            <option value="otro">Otro</option>
-          </select>
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-            Monto (opcional)
-          </label>
-          <input
-            name="monto"
-            value={form.monto}
-            onChange={handleChange}
-            placeholder="0.00"
-            type="number"
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-            Notas
-          </label>
-          <textarea
-            name="notas"
-            value={form.notas}
-            onChange={handleChange}
-            placeholder="Detalles de la visita..."
-            rows={4}
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }}
-          />
-        </div>
-
+    <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', background: '#f8fafc' }}>
+      <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <span style={{ color: 'white', fontWeight: '700', fontSize: '18px', marginRight: '24px' }}>FieldTrack</span>
         <button
-          type="submit"
-          disabled={cargando}
-          style={{ width: '100%', padding: '12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontSize: '16px', fontWeight: '500', cursor: 'pointer' }}
+          onClick={() => setPantalla('formulario')}
+          style={{ background: pantalla === 'formulario' ? 'white' : 'transparent', color: pantalla === 'formulario' ? '#2563eb' : 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
         >
-          {cargando ? 'Guardando...' : 'Guardar visita'}
+          Nueva visita
         </button>
-      </form>
+        <button
+          onClick={() => setPantalla('dashboard')}
+          style={{ background: pantalla === 'dashboard' ? 'white' : 'transparent', color: pantalla === 'dashboard' ? '#2563eb' : 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
+        >
+          Dashboard
+        </button>
+      </nav>
 
-      {mensaje && (
-        <div style={{ marginTop: '16px', padding: '12px', background: mensaje.includes('Error') ? '#fee2e2' : '#dcfce7', borderRadius: '6px', color: mensaje.includes('Error') ? '#dc2626' : '#16a34a' }}>
-          {mensaje}
-        </div>
-      )}
+      <div style={{ padding: '24px' }}>
+        {pantalla === 'formulario' && <FormularioVisita />}
+        {pantalla === 'dashboard' && <DashboardSupervisor />}
+      </div>
     </div>
   )
 }
