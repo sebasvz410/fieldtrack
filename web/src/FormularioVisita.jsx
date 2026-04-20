@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
 
-function FormularioVisita() {
+function FormularioVisita({ usuario }) {
   const [form, setForm] = useState({
-    vendedor: '',
     cliente: '',
     resultado: '',
     monto: '',
@@ -25,28 +24,26 @@ function FormularioVisita() {
       notes: form.notas,
       result: form.resultado,
       amount: form.monto ? parseFloat(form.monto) : null,
-      visited_at: new Date().toISOString()
+      visited_at: new Date().toISOString(),
+      vendedor_email: usuario.email,
+      cliente_nombre: form.cliente
     }])
 
     if (error) {
       setMensaje('Error al guardar: ' + error.message)
     } else {
       setMensaje('Visita registrada correctamente!')
-      setForm({ vendedor: '', cliente: '', resultado: '', monto: '', notas: '' })
+      setForm({ cliente: '', resultado: '', monto: '', notas: '' })
     }
     setCargando(false)
   }
 
   return (
     <div style={{ maxWidth: '500px', margin: '0 auto', background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Nueva visita</h2>
+      <h2 style={{ fontSize: '20px', marginBottom: '4px' }}>Nueva visita</h2>
+      <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '20px' }}>Vendedor: {usuario.email}</p>
 
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Vendedor *</label>
-          <input name="vendedor" value={form.vendedor} onChange={handleChange} placeholder="Tu nombre" required style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} />
-        </div>
-
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Cliente *</label>
           <input name="cliente" value={form.cliente} onChange={handleChange} placeholder="Nombre del cliente" required style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }} />

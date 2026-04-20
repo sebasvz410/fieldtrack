@@ -79,24 +79,34 @@ function DashboardSupervisor() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {visitasFiltradas.map(visita => (
-              <div key={visita.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
-                <div>
-                  <div style={{ fontWeight: '500', fontSize: '14px', marginBottom: '4px' }}>
-                    {visita.notes || 'Sin notas'}
+              <div key={visita.id} style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>
+                      {visita.cliente_nombre || 'Sin cliente'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '2px' }}>
+                      Vendedor: {visita.vendedor_email || 'Sin vendedor'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {new Date(visita.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    {visita.notes && (
+                      <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px' }}>
+                        {visita.notes}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    {new Date(visita.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {visita.amount && (
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>
-                      ${visita.amount.toLocaleString()}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                    {visita.amount && (
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>
+                        ${visita.amount.toLocaleString()}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '20px', fontWeight: '500', background: colores[visita.result]?.bg || '#f3f4f6', color: colores[visita.result]?.color || '#6b7280' }}>
+                      {visita.result || 'sin resultado'}
                     </span>
-                  )}
-                  <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '20px', fontWeight: '500', background: colores[visita.result]?.bg || '#f3f4f6', color: colores[visita.result]?.color || '#6b7280' }}>
-                    {visita.result || 'sin resultado'}
-                  </span>
+                  </div>
                 </div>
               </div>
             ))}
