@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import * as XLSX from 'xlsx'
 
 function DashboardSupervisor({ usuario }) {
   const [visitas, setVisitas] = useState([])
@@ -52,6 +53,20 @@ function DashboardSupervisor({ usuario }) {
       return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()
     }
     return true
+  }function exportarExcel() {
+    const datos = visitasFiltradas.map(v => ({
+      'Cliente': v.cliente_nombre || 'Sin cliente',
+      'Vendedor': v.vendedor_email || 'Sin vendedor',
+      'Resultado': v.result || 'Sin resultado',
+      'Monto': v.amount || 0,
+      'Notas': v.notes || '',
+      'Fecha': new Date(v.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    }))
+
+    const hoja = XLSX.utils.json_to_sheet(datos)
+    const libro = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(libro, hoja, 'Visitas')
+    XLSX.writeFile(libro, 'visitas_fieldtrack.xlsx')
   }
 
   const visitasFiltradas = visitas
@@ -86,10 +101,18 @@ function DashboardSupervisor({ usuario }) {
           {esSupervisor ? 'Dashboard del supervisor' : 'Mis visitas'}
         </h2>
         {esSupervisor && (
-          <span style={{ fontSize: '12px', padding: '4px 12px', background: '#dbeafe', color: '#2563eb', borderRadius: '20px', fontWeight: '500' }}>
-            Vista supervisor
-          </span>
-        )}
+  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+    <span style={{ fontSize: '12px', padding: '4px 12px', background: '#dbeafe', color: '#2563eb', borderRadius: '20px', fontWeight: '500' }}>
+      Vista supervisor
+    </span>
+    <button
+      onClick={exportarExcel}
+      style={{ fontSize: '12px', padding: '6px 14px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
+    >
+      Exportar Excel
+    </button>
+  </div>
+)}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
