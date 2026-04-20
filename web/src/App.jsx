@@ -62,7 +62,7 @@ function App() {
 
       <div style={{ padding: '24px' }}>
         {pantalla === 'formulario' && <FormularioVisita usuario={usuario} />}
-        {pantalla === 'dashboard' && <DashboardSupervisor />}
+        {pantalla === 'dashboard' && <DashboardSupervisor usuario={usuario} />}
       </div>
     </div>
   )

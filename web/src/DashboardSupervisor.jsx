@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function DashboardSupervisor() {
+function DashboardSupervisor({ usuario }) {
   const [visitas, setVisitas] = useState([])
   const [cargando, setCargando] = useState(true)
   const [filtro, setFiltro] = useState('todos')
+
+  const esSupervisor = usuario.email === 'supervisor@fieldtrack.com'
 
   useEffect(() => {
     cargarVisitas()
@@ -12,11 +14,17 @@ function DashboardSupervisor() {
 
   async function cargarVisitas() {
     setCargando(true)
-    const { data, error } = await supabase
+
+    let query = supabase
       .from('visits')
       .select('*')
       .order('visited_at', { ascending: false })
 
+    if (!esSupervisor) {
+      query = query.eq('vendedor_email', usuario.email)
+    }
+
+    const { data, error } = await query
     if (!error) setVisitas(data)
     setCargando(false)
   }
@@ -38,7 +46,16 @@ function DashboardSupervisor() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Dashboard del supervisor</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '20px' }}>
+          {esSupervisor ? 'Dashboard del supervisor' : 'Mis visitas'}
+        </h2>
+        {esSupervisor && (
+          <span style={{ fontSize: '12px', padding: '4px 12px', background: '#dbeafe', color: '#2563eb', borderRadius: '20px', fontWeight: '500' }}>
+            Vista supervisor
+          </span>
+        )}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
         <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -85,9 +102,11 @@ function DashboardSupervisor() {
                     <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>
                       {visita.cliente_nombre || 'Sin cliente'}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '2px' }}>
-                      Vendedor: {visita.vendedor_email || 'Sin vendedor'}
-                    </div>
+                    {esSupervisor && (
+                      <div style={{ fontSize: '12px', color: '#2563eb', marginBottom: '2px' }}>
+                        {visita.vendedor_email || 'Sin vendedor'}
+                      </div>
+                    )}
                     <div style={{ fontSize: '12px', color: '#6b7280' }}>
                       {new Date(visita.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
