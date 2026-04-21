@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import Login from './Login'
 import FormularioVisita from './FormularioVisita'
 import DashboardSupervisor from './DashboardSupervisor'
+import GestionVendedores from './GestionVendedores'
 
 function App() {
   const [usuario, setUsuario] = useState(null)
@@ -33,22 +34,24 @@ function App() {
 
   if (!usuario) return <Login onLogin={setUsuario} />
 
+  const esSupervisor = usuario.email === 'supervisor@fieldtrack.com'
+
+  const btnNav = (id, label) => (
+    <button
+      onClick={() => setPantalla(id)}
+      style={{ background: pantalla === id ? 'white' : 'transparent', color: pantalla === id ? '#2563eb' : 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
+    >
+      {label}
+    </button>
+  )
+
   return (
     <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', background: '#f8fafc' }}>
       <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
         <span style={{ color: 'white', fontWeight: '700', fontSize: '18px', marginRight: '24px' }}>FieldTrack</span>
-        <button
-          onClick={() => setPantalla('formulario')}
-          style={{ background: pantalla === 'formulario' ? 'white' : 'transparent', color: pantalla === 'formulario' ? '#2563eb' : 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
-        >
-          Nueva visita
-        </button>
-        <button
-          onClick={() => setPantalla('dashboard')}
-          style={{ background: pantalla === 'dashboard' ? 'white' : 'transparent', color: pantalla === 'dashboard' ? '#2563eb' : 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
-        >
-          Dashboard
-        </button>
+        {btnNav('formulario', 'Nueva visita')}
+        {btnNav('dashboard', 'Dashboard')}
+        {esSupervisor && btnNav('vendedores', 'Vendedores')}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ color: 'white', fontSize: '13px' }}>{usuario.email}</span>
           <button
@@ -63,6 +66,7 @@ function App() {
       <div style={{ padding: '24px' }}>
         {pantalla === 'formulario' && <FormularioVisita usuario={usuario} />}
         {pantalla === 'dashboard' && <DashboardSupervisor usuario={usuario} />}
+        {pantalla === 'vendedores' && <GestionVendedores />}
       </div>
     </div>
   )
