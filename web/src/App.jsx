@@ -15,7 +15,6 @@ function App() {
       setUsuario(session?.user ?? null)
       setCargando(false)
     })
-
     supabase.auth.onAuthStateChange((_event, session) => {
       setUsuario(session?.user ?? null)
     })
@@ -27,8 +26,11 @@ function App() {
   }
 
   if (cargando) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
-      Cargando...
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', background: '#f1f5f9' }}>
+      <div style={{ textAlign: 'center' }}>
+        <img src="/logoveneto.png" alt="Veneto" style={{ height: '48px', objectFit: 'contain', marginBottom: '12px' }} />
+        <p style={{ color: '#64748b' }}>Cargando...</p>
+      </div>
     </div>
   )
 
@@ -36,34 +38,51 @@ function App() {
 
   const esSupervisor = usuario.email === 'supervisor@fieldtrack.com'
 
-  const btnNav = (id, label) => (
-    <button
-      onClick={() => setPantalla(id)}
-      style={{ background: pantalla === id ? 'white' : 'transparent', color: pantalla === id ? '#2563eb' : 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
-    >
-      {label}
-    </button>
-  )
+  const navItems = [
+    { id: 'formulario', label: 'Nueva visita' },
+    { id: 'dashboard', label: 'Dashboard' },
+    ...(esSupervisor ? [{ id: 'vendedores', label: 'Vendedores' }] : [])
+  ]
 
   return (
-    <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', background: '#f8fafc' }}>
-      <nav style={{ background: '#2563eb', padding: '12px 24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-        <span style={{ color: 'white', fontWeight: '700', fontSize: '18px', marginRight: '24px' }}>FieldTrack</span>
-        {btnNav('formulario', 'Nueva visita')}
-        {btnNav('dashboard', 'Dashboard')}
-        {esSupervisor && btnNav('vendedores', 'Vendedores')}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ color: 'white', fontSize: '13px' }}>{usuario.email}</span>
+    <div style={{ fontFamily: 'inherit', minHeight: '100vh', background: '#f1f5f9' }}>
+      <nav style={{ background: 'white', borderBottom: '1px solid #e2e8f0', padding: '0 24px', display: 'flex', alignItems: 'center', height: '60px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '32px' }}>
+          <img src="/logoveneto.png" alt="Veneto" style={{ height: '36px', objectFit: 'contain' }} />
+        </div>
+
+        <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setPantalla(item.id)}
+              style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '500', fontSize: '14px', background: pantalla === item.id ? '#eff6ff' : 'transparent', color: pantalla === item.id ? '#2563eb' : '#64748b', transition: 'all .15s' }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: esSupervisor ? '#fef3c7' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', color: esSupervisor ? '#d97706' : '#2563eb' }}>
+              {usuario.email[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#1e293b' }}>{usuario.email.split('@')[0]}</div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>{esSupervisor ? 'Supervisor' : 'Vendedor'}</div>
+            </div>
+          </div>
           <button
             onClick={handleLogout}
-            style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+            style={{ padding: '6px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', color: '#64748b', fontWeight: '500' }}
           >
             Salir
           </button>
         </div>
       </nav>
 
-      <div style={{ padding: '24px' }}>
+      <div style={{ padding: '28px 24px' }}>
         {pantalla === 'formulario' && <FormularioVisita usuario={usuario} />}
         {pantalla === 'dashboard' && <DashboardSupervisor usuario={usuario} />}
         {pantalla === 'vendedores' && <GestionVendedores />}
