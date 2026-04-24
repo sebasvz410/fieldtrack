@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native'
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, ScrollView, Alert, Image } from 'react-native'
 import { supabase } from './supabase'
 
 export default function App() {
@@ -83,6 +83,7 @@ export default function App() {
     return (
       <View style={styles.loginFondo}>
         <View style={styles.loginCard}>
+          <Image source={require('./assets/logoveneto.png')} style={{ height: 60, width: '100%', resizeMode: 'contain', marginBottom: 12 }} />
           <Text style={styles.titulo}>FieldTrack</Text>
           <Text style={styles.subtitulo}>Veneto — Vendedores de campo</Text>
 
@@ -116,7 +117,7 @@ export default function App() {
   return (
     <View style={{ flex: 1, backgroundColor: '#f1f5f9' }}>
       <View style={styles.navbar}>
-        <Text style={styles.navTitulo}>FieldTrack</Text>
+        <Image source={require('./assets/logoveneto.png')} style={{ height: 30, width: 100, resizeMode: 'contain' }} />
         <Text style={styles.navUsuario}>{usuario.email.split('@')[0]}</Text>
       </View>
 
@@ -230,9 +231,9 @@ export default function App() {
                       </Text>
                       {v.notes ? <Text style={styles.visitaNotas}>{v.notes}</Text> : null}
                     </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <View style={{ alignItems: 'flex-end' }}>
                       {v.amount ? <Text style={{ color: '#16a34a', fontWeight: '700', fontSize: 14 }}>${v.amount.toLocaleString()}</Text> : null}
-                      <View style={[styles.badge, { backgroundColor: colores[v.result] + '20' }]}>
+                      <View style={[styles.badge, { backgroundColor: (colores[v.result] || '#64748b') + '20' }]}>
                         <Text style={[styles.badgeTexto, { color: colores[v.result] || '#64748b' }]}>
                           {v.result || 'sin resultado'}
                         </Text>
@@ -262,7 +263,6 @@ const styles = StyleSheet.create({
   btnSalir: { borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 12, marginTop: 10, alignItems: 'center' },
   btnSalirTexto: { color: '#64748b', fontSize: 14 },
   navbar: { backgroundColor: '#1e40af', padding: 16, paddingTop: 50, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  navTitulo: { color: 'white', fontWeight: '700', fontSize: 18 },
   navUsuario: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
   tabBar: { flexDirection: 'row', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   tab: { flex: 1, padding: 14, alignItems: 'center' },
@@ -286,6 +286,6 @@ const styles = StyleSheet.create({
   visitaVendedor: { fontSize: 12, color: '#2563eb', marginBottom: 2 },
   visitaFecha: { fontSize: 12, color: '#64748b' },
   visitaNotas: { fontSize: 12, color: '#374151', marginTop: 4 },
-  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginTop: 4 },
   badgeTexto: { fontSize: 11, fontWeight: '600' }
 })
