@@ -74,9 +74,9 @@ function DashboardSupervisor({ usuario }) {
     .filter(v => filtroVendedor === 'todos' || v.vendedor_email === filtroVendedor)
     .filter(v => dentroDelRango(v.visited_at))
 
-  const totalVentas = visitasFiltradas
-    .filter(v => v.result === 'venta')
-    .reduce((sum, v) => sum + (v.amount || 0), 0)
+const totalVentas = visitas
+  .filter(v => v.result === 'venta')
+  .reduce((sum, v) => sum + (parseFloat(v.amount) || 0), 0)
 
   const colores = {
     venta: { bg: '#dcfce7', color: '#16a34a' },
