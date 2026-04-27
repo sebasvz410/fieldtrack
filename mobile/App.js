@@ -6,6 +6,7 @@ export default function App() {
   const [pantalla, setPantalla] = useState('login')
   const [usuario, setUsuario] = useState(null)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
+  const [verPassword, setVerPassword] = useState(false)
   const [visitaForm, setVisitaForm] = useState({ cliente: '', tipo_cliente: '', rubro: '', resultado: '', monto: '', notas: '' })
   const [visitas, setVisitas] = useState([])
   const [cargando, setCargando] = useState(false)
@@ -105,10 +106,34 @@ export default function App() {
           <Image source={require('./assets/logoveneto.png')} style={{ height: 60, width: '100%', resizeMode: 'contain', marginBottom: 12 }} />
           <Text style={styles.titulo}>FieldTrack</Text>
           <Text style={styles.subtitulo}>Veneto — Vendedores de campo</Text>
+
           <Text style={styles.label}>Email</Text>
-          <TextInput style={styles.input} value={loginForm.email} onChangeText={t => setLoginForm({ ...loginForm, email: t })} placeholder="tu@email.com" keyboardType="email-address" autoCapitalize="none" />
+          <TextInput
+            style={styles.input}
+            value={loginForm.email}
+            onChangeText={t => setLoginForm({ ...loginForm, email: t })}
+            placeholder="tu@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput style={styles.input} value={loginForm.password} onChangeText={t => setLoginForm({ ...loginForm, password: t })} placeholder="••••••••" secureTextEntry />
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              style={[styles.input, { paddingRight: 44 }]}
+              value={loginForm.password}
+              onChangeText={t => setLoginForm({ ...loginForm, password: t })}
+              placeholder="••••••••"
+              secureTextEntry={!verPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setVerPassword(!verPassword)}
+              style={{ position: 'absolute', right: 12, top: 11 }}
+            >
+              <Text style={{ fontSize: 18 }}>{verPassword ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity style={styles.btnPrimario} onPress={handleLogin} disabled={cargando}>
             <Text style={styles.btnPrimarioTexto}>{cargando ? 'Entrando...' : 'Iniciar sesión'}</Text>
           </TouchableOpacity>
