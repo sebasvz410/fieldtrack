@@ -6,7 +6,7 @@ export default function App() {
   const [pantalla, setPantalla] = useState('login')
   const [usuario, setUsuario] = useState(null)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
-  const [visitaForm, setVisitaForm] = useState({ cliente: '', resultado: '', monto: '', notas: '' })
+  const [visitaForm, setVisitaForm] = useState({ cliente: '', tipo_cliente: '', rubro: '', resultado: '', monto: '', notas: '' })
   const [visitas, setVisitas] = useState([])
   const [cargando, setCargando] = useState(false)
 
@@ -48,13 +48,15 @@ export default function App() {
   }, [pantalla])
 
   async function handleGuardarVisita() {
-    if (!visitaForm.cliente || !visitaForm.resultado) {
-      Alert.alert('Error', 'Cliente y resultado son obligatorios')
+    if (!visitaForm.cliente || !visitaForm.resultado || !visitaForm.tipo_cliente || !visitaForm.rubro) {
+      Alert.alert('Error', 'Cliente, tipo, rubro y resultado son obligatorios')
       return
     }
     setCargando(true)
     const { error } = await supabase.from('visits').insert([{
       cliente_nombre: visitaForm.cliente,
+      tipo_cliente: visitaForm.tipo_cliente,
+      rubro: visitaForm.rubro,
       result: visitaForm.resultado,
       amount: visitaForm.monto ? parseFloat(visitaForm.monto) : null,
       notes: visitaForm.notas,
@@ -65,12 +67,12 @@ export default function App() {
       Alert.alert('Error', error.message)
     } else {
       Alert.alert('Listo', 'Visita registrada correctamente')
-      setVisitaForm({ cliente: '', resultado: '', monto: '', notas: '' })
+      setVisitaForm({ cliente: '', tipo_cliente: '', rubro: '', resultado: '', monto: '', notas: '' })
     }
     setCargando(false)
   }
 
-  const totalVentas = visitas.filter(v => v.result === 'venta').reduce((s, v) => s + (v.amount || 0), 0)
+  const totalVentas = visitas.filter(v => v.result === 'venta').reduce((s, v) => s + (parseFloat(v.amount) || 0), 0)
 
   const colores = {
     venta: '#16a34a',
@@ -79,6 +81,23 @@ export default function App() {
     otro: '#64748b'
   }
 
+  const Selector = ({ label, opciones, valor, onChange }) => (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.pilasRow}>
+        {opciones.map(op => (
+          <TouchableOpacity
+            key={op.value}
+            onPress={() => onChange(op.value)}
+            style={[styles.pila, valor === op.value && styles.pilaActiva]}
+          >
+            <Text style={[styles.pilaTexto, valor === op.value && styles.pilaTextoActivo]}>{op.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  )
+
   if (pantalla === 'login') {
     return (
       <View style={styles.loginFondo}>
@@ -86,26 +105,10 @@ export default function App() {
           <Image source={require('./assets/logoveneto.png')} style={{ height: 60, width: '100%', resizeMode: 'contain', marginBottom: 12 }} />
           <Text style={styles.titulo}>FieldTrack</Text>
           <Text style={styles.subtitulo}>Veneto — Vendedores de campo</Text>
-
           <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={loginForm.email}
-            onChangeText={t => setLoginForm({ ...loginForm, email: t })}
-            placeholder="tu@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
+          <TextInput style={styles.input} value={loginForm.email} onChangeText={t => setLoginForm({ ...loginForm, email: t })} placeholder="tu@email.com" keyboardType="email-address" autoCapitalize="none" />
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput
-            style={styles.input}
-            value={loginForm.password}
-            onChangeText={t => setLoginForm({ ...loginForm, password: t })}
-            placeholder="••••••••"
-            secureTextEntry
-          />
-
+          <TextInput style={styles.input} value={loginForm.password} onChangeText={t => setLoginForm({ ...loginForm, password: t })} placeholder="••••••••" secureTextEntry />
           <TouchableOpacity style={styles.btnPrimario} onPress={handleLogin} disabled={cargando}>
             <Text style={styles.btnPrimarioTexto}>{cargando ? 'Entrando...' : 'Iniciar sesión'}</Text>
           </TouchableOpacity>
@@ -122,19 +125,11 @@ export default function App() {
       </View>
 
       <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, pantalla === 'visita' && styles.tabActivo]}
-          onPress={() => setPantalla('visita')}
-        >
+        <TouchableOpacity style={[styles.tab, pantalla === 'visita' && styles.tabActivo]} onPress={() => setPantalla('visita')}>
           <Text style={[styles.tabTexto, pantalla === 'visita' && styles.tabTextoActivo]}>Nueva visita</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, pantalla === 'resumen' && styles.tabActivo]}
-          onPress={() => setPantalla('resumen')}
-        >
-          <Text style={[styles.tabTexto, pantalla === 'resumen' && styles.tabTextoActivo]}>
-            {esSupervisor ? 'Dashboard' : 'Mis visitas'}
-          </Text>
+        <TouchableOpacity style={[styles.tab, pantalla === 'resumen' && styles.tabActivo]} onPress={() => setPantalla('resumen')}>
+          <Text style={[styles.tabTexto, pantalla === 'resumen' && styles.tabTextoActivo]}>{esSupervisor ? 'Dashboard' : 'Mis visitas'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -145,46 +140,55 @@ export default function App() {
             <Text style={styles.vendedorTag}>{usuario.email}</Text>
 
             <Text style={styles.label}>Cliente *</Text>
-            <TextInput
-              style={styles.input}
-              value={visitaForm.cliente}
-              onChangeText={t => setVisitaForm({ ...visitaForm, cliente: t })}
-              placeholder="Nombre del cliente"
+            <TextInput style={styles.input} value={visitaForm.cliente} onChangeText={t => setVisitaForm({ ...visitaForm, cliente: t })} placeholder="Nombre del cliente" />
+
+            <Selector
+              label="Tipo de cliente *"
+              valor={visitaForm.tipo_cliente}
+              onChange={v => setVisitaForm({ ...visitaForm, tipo_cliente: v })}
+              opciones={[
+                { value: 'nuevo', label: 'Nuevo' },
+                { value: 'activo', label: 'Activo' },
+                { value: 'inactivo', label: 'Inactivo' },
+                { value: 'potencial', label: 'Potencial' }
+              ]}
             />
 
-            <Text style={styles.label}>Resultado *</Text>
-            <View style={styles.pilasRow}>
-              {['venta', 'cotizacion', 'no_interesado', 'otro'].map(r => (
-                <TouchableOpacity
-                  key={r}
-                  onPress={() => setVisitaForm({ ...visitaForm, resultado: r })}
-                  style={[styles.pila, visitaForm.resultado === r && styles.pilaActiva]}
-                >
-                  <Text style={[styles.pilaTexto, visitaForm.resultado === r && styles.pilaTextoActivo]}>
-                    {r === 'venta' ? 'Venta' : r === 'cotizacion' ? 'Cotización' : r === 'no_interesado' ? 'No interesado' : 'Otro'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Selector
+              label="Rubro *"
+              valor={visitaForm.rubro}
+              onChange={v => setVisitaForm({ ...visitaForm, rubro: v })}
+              opciones={[
+                { value: 'kiosco', label: 'Kiosco' },
+                { value: 'maxikiosco', label: 'Maxikiosco' },
+                { value: 'drugstore', label: 'Drugstore' },
+                { value: 'almacen', label: 'Almacén' },
+                { value: 'minimercado', label: 'Minimercado' },
+                { value: 'mercado', label: 'Mercado' },
+                { value: 'supermercado', label: 'Supermercado' },
+                { value: 'distribuidor', label: 'Distribuidor' },
+                { value: 'gastronomico', label: 'Gastronómico' },
+                { value: 'otros', label: 'Otros' }
+              ]}
+            />
+
+            <Selector
+              label="Resultado *"
+              valor={visitaForm.resultado}
+              onChange={v => setVisitaForm({ ...visitaForm, resultado: v })}
+              opciones={[
+                { value: 'venta', label: 'Venta' },
+                { value: 'cotizacion', label: 'Cotización' },
+                { value: 'no_interesado', label: 'No interesado' },
+                { value: 'otro', label: 'Otro' }
+              ]}
+            />
 
             <Text style={styles.label}>Monto (opcional)</Text>
-            <TextInput
-              style={styles.input}
-              value={visitaForm.monto}
-              onChangeText={t => setVisitaForm({ ...visitaForm, monto: t })}
-              placeholder="0.00"
-              keyboardType="numeric"
-            />
+            <TextInput style={styles.input} value={visitaForm.monto} onChangeText={t => setVisitaForm({ ...visitaForm, monto: t })} placeholder="0.00" keyboardType="numeric" />
 
             <Text style={styles.label}>Notas</Text>
-            <TextInput
-              style={[styles.input, styles.textarea]}
-              value={visitaForm.notas}
-              onChangeText={t => setVisitaForm({ ...visitaForm, notas: t })}
-              placeholder="Detalles de la visita..."
-              multiline
-              numberOfLines={4}
-            />
+            <TextInput style={[styles.input, styles.textarea]} value={visitaForm.notas} onChangeText={t => setVisitaForm({ ...visitaForm, notas: t })} placeholder="Detalles de la visita..." multiline numberOfLines={4} />
 
             <TouchableOpacity style={styles.btnPrimario} onPress={handleGuardarVisita} disabled={cargando}>
               <Text style={styles.btnPrimarioTexto}>{cargando ? 'Guardando...' : 'Guardar visita'}</Text>
@@ -226,17 +230,14 @@ export default function App() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.visitaCliente}>{v.cliente_nombre || 'Sin cliente'}</Text>
                       {esSupervisor && <Text style={styles.visitaVendedor}>{v.vendedor_email}</Text>}
-                      <Text style={styles.visitaFecha}>
-                        {new Date(v.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </Text>
+                      {v.tipo_cliente && <Text style={{ fontSize: 11, color: '#7c3aed', marginBottom: 1 }}>{v.tipo_cliente} · {v.rubro}</Text>}
+                      <Text style={styles.visitaFecha}>{new Date(v.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
                       {v.notes ? <Text style={styles.visitaNotas}>{v.notes}</Text> : null}
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      {v.amount ? <Text style={{ color: '#16a34a', fontWeight: '700', fontSize: 14 }}>${v.amount.toLocaleString()}</Text> : null}
+                      {v.amount ? <Text style={{ color: '#16a34a', fontWeight: '700', fontSize: 14 }}>${parseFloat(v.amount).toLocaleString()}</Text> : null}
                       <View style={[styles.badge, { backgroundColor: (colores[v.result] || '#64748b') + '20' }]}>
-                        <Text style={[styles.badgeTexto, { color: colores[v.result] || '#64748b' }]}>
-                          {v.result || 'sin resultado'}
-                        </Text>
+                        <Text style={[styles.badgeTexto, { color: colores[v.result] || '#64748b' }]}>{v.result || 'sin resultado'}</Text>
                       </View>
                     </View>
                   </View>
