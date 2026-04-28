@@ -9,7 +9,12 @@ export default function App() {
   const [verPassword, setVerPassword] = useState(false)
   const [visitaForm, setVisitaForm] = useState({ cliente: '', tipo_cliente: '', rubro: '', resultado: '', monto: '', notas: '' })
   const [visitas, setVisitas] = useState([])
+  const [vendedores, setVendedores] = useState([])
   const [cargando, setCargando] = useState(false)
+  const [filtroResultado, setFiltroResultado] = useState('todos')
+  const [filtroTipoCliente, setFiltroTipoCliente] = useState('todos')
+  const [filtroFecha, setFiltroFecha] = useState('todos')
+  const [filtroVendedor, setFiltroVendedor] = useState('todos')
 
   const esSupervisor = usuario?.email === 'supervisor@fieldtrack.com'
 
@@ -40,13 +45,31 @@ export default function App() {
     }
 
     const { data, error } = await query
-    if (!error) setVisitas(data)
+    if (!error) {
+      setVisitas(data)
+      const emails = [...new Set(data.map(v => v.vendedor_email).filter(Boolean))]
+      setVendedores(emails)
+    }
     setCargando(false)
   }
 
   useEffect(() => {
     if (pantalla === 'resumen' && usuario) cargarVisitas()
   }, [pantalla])
+
+  function dentroDelRango(fecha) {
+    if (filtroFecha === 'todos') return true
+    const hoy = new Date()
+    const f = new Date(fecha)
+    if (filtroFecha === 'hoy') return f.toDateString() === hoy.toDateString()
+    if (filtroFecha === 'semana') {
+      const hace7 = new Date()
+      hace7.setDate(hoy.getDate() - 7)
+      return f >= hace7
+    }
+    if (filtroFecha === 'mes') return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()
+    return true
+  }
 
   async function handleGuardarVisita() {
     if (!visitaForm.cliente || !visitaForm.resultado || !visitaForm.tipo_cliente || !visitaForm.rubro) {
@@ -73,7 +96,13 @@ export default function App() {
     setCargando(false)
   }
 
-  const totalVentas = visitas.filter(v => v.result === 'venta').reduce((s, v) => s + (parseFloat(v.amount) || 0), 0)
+  const visitasFiltradas = visitas
+    .filter(v => filtroResultado === 'todos' || v.result === filtroResultado)
+    .filter(v => filtroTipoCliente === 'todos' || v.tipo_cliente === filtroTipoCliente)
+    .filter(v => filtroVendedor === 'todos' || v.vendedor_email === filtroVendedor)
+    .filter(v => dentroDelRango(v.visited_at))
+
+  const totalVentas = visitasFiltradas.filter(v => v.result === 'venta').reduce((s, v) => s + (parseFloat(v.amount) || 0), 0)
 
   const colores = {
     venta: '#16a34a',
@@ -87,15 +116,26 @@ export default function App() {
       <Text style={styles.label}>{label}</Text>
       <View style={styles.pilasRow}>
         {opciones.map(op => (
-          <TouchableOpacity
-            key={op.value}
-            onPress={() => onChange(op.value)}
-            style={[styles.pila, valor === op.value && styles.pilaActiva]}
-          >
+          <TouchableOpacity key={op.value} onPress={() => onChange(op.value)} style={[styles.pila, valor === op.value && styles.pilaActiva]}>
             <Text style={[styles.pilaTexto, valor === op.value && styles.pilaTextoActivo]}>{op.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
+    </View>
+  )
+
+  const FiltroRow = ({ label, opciones, valor, onChange, color }) => (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 6 }}>{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {opciones.map(op => (
+            <TouchableOpacity key={op.value} onPress={() => onChange(op.value)} style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: valor === op.value ? color : '#f3f4f6' }}>
+              <Text style={{ fontSize: 12, fontWeight: '500', color: valor === op.value ? 'white' : '#374151' }}>{op.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   )
 
@@ -106,34 +146,15 @@ export default function App() {
           <Image source={require('./assets/logoveneto.png')} style={{ height: 60, width: '100%', resizeMode: 'contain', marginBottom: 12 }} />
           <Text style={styles.titulo}>FieldTrack</Text>
           <Text style={styles.subtitulo}>Veneto — Vendedores de campo</Text>
-
           <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={loginForm.email}
-            onChangeText={t => setLoginForm({ ...loginForm, email: t })}
-            placeholder="tu@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
+          <TextInput style={styles.input} value={loginForm.email} onChangeText={t => setLoginForm({ ...loginForm, email: t })} placeholder="tu@email.com" keyboardType="email-address" autoCapitalize="none" />
           <Text style={styles.label}>Contraseña</Text>
           <View style={{ position: 'relative' }}>
-            <TextInput
-              style={[styles.input, { paddingRight: 44 }]}
-              value={loginForm.password}
-              onChangeText={t => setLoginForm({ ...loginForm, password: t })}
-              placeholder="••••••••"
-              secureTextEntry={!verPassword}
-            />
-            <TouchableOpacity
-              onPress={() => setVerPassword(!verPassword)}
-              style={{ position: 'absolute', right: 12, top: 11 }}
-            >
+            <TextInput style={[styles.input, { paddingRight: 44 }]} value={loginForm.password} onChangeText={t => setLoginForm({ ...loginForm, password: t })} placeholder="••••••••" secureTextEntry={!verPassword} />
+            <TouchableOpacity onPress={() => setVerPassword(!verPassword)} style={{ position: 'absolute', right: 12, top: 11 }}>
               <Text style={{ fontSize: 18 }}>{verPassword ? '🙈' : '👁️'}</Text>
             </TouchableOpacity>
           </View>
-
           <TouchableOpacity style={styles.btnPrimario} onPress={handleLogin} disabled={cargando}>
             <Text style={styles.btnPrimarioTexto}>{cargando ? 'Entrando...' : 'Iniciar sesión'}</Text>
           </TouchableOpacity>
@@ -163,62 +184,18 @@ export default function App() {
           <View style={styles.card}>
             <Text style={styles.cardTitulo}>Nueva visita</Text>
             <Text style={styles.vendedorTag}>{usuario.email}</Text>
-
             <Text style={styles.label}>Cliente *</Text>
             <TextInput style={styles.input} value={visitaForm.cliente} onChangeText={t => setVisitaForm({ ...visitaForm, cliente: t })} placeholder="Nombre del cliente" />
-
-            <Selector
-              label="Tipo de cliente *"
-              valor={visitaForm.tipo_cliente}
-              onChange={v => setVisitaForm({ ...visitaForm, tipo_cliente: v })}
-              opciones={[
-                { value: 'nuevo', label: 'Nuevo' },
-                { value: 'activo', label: 'Activo' },
-                { value: 'inactivo', label: 'Inactivo' },
-                { value: 'potencial', label: 'Potencial' }
-              ]}
-            />
-
-            <Selector
-              label="Rubro *"
-              valor={visitaForm.rubro}
-              onChange={v => setVisitaForm({ ...visitaForm, rubro: v })}
-              opciones={[
-                { value: 'kiosco', label: 'Kiosco' },
-                { value: 'maxikiosco', label: 'Maxikiosco' },
-                { value: 'drugstore', label: 'Drugstore' },
-                { value: 'almacen', label: 'Almacén' },
-                { value: 'minimercado', label: 'Minimercado' },
-                { value: 'mercado', label: 'Mercado' },
-                { value: 'supermercado', label: 'Supermercado' },
-                { value: 'distribuidor', label: 'Distribuidor' },
-                { value: 'gastronomico', label: 'Gastronómico' },
-                { value: 'otros', label: 'Otros' }
-              ]}
-            />
-
-            <Selector
-              label="Resultado *"
-              valor={visitaForm.resultado}
-              onChange={v => setVisitaForm({ ...visitaForm, resultado: v })}
-              opciones={[
-                { value: 'venta', label: 'Venta' },
-                { value: 'cotizacion', label: 'Cotización' },
-                { value: 'no_interesado', label: 'No interesado' },
-                { value: 'otro', label: 'Otro' }
-              ]}
-            />
-
+            <Selector label="Tipo de cliente *" valor={visitaForm.tipo_cliente} onChange={v => setVisitaForm({ ...visitaForm, tipo_cliente: v })} opciones={[{ value: 'nuevo', label: 'Nuevo' }, { value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }, { value: 'potencial', label: 'Potencial' }]} />
+            <Selector label="Rubro *" valor={visitaForm.rubro} onChange={v => setVisitaForm({ ...visitaForm, rubro: v })} opciones={[{ value: 'kiosco', label: 'Kiosco' }, { value: 'maxikiosco', label: 'Maxikiosco' }, { value: 'drugstore', label: 'Drugstore' }, { value: 'almacen', label: 'Almacén' }, { value: 'minimercado', label: 'Minimercado' }, { value: 'mercado', label: 'Mercado' }, { value: 'supermercado', label: 'Supermercado' }, { value: 'distribuidor', label: 'Distribuidor' }, { value: 'gastronomico', label: 'Gastronómico' }, { value: 'otros', label: 'Otros' }]} />
+            <Selector label="Resultado *" valor={visitaForm.resultado} onChange={v => setVisitaForm({ ...visitaForm, resultado: v })} opciones={[{ value: 'venta', label: 'Venta' }, { value: 'cotizacion', label: 'Cotización' }, { value: 'no_interesado', label: 'No interesado' }, { value: 'otro', label: 'Otro' }]} />
             <Text style={styles.label}>Monto (opcional)</Text>
             <TextInput style={styles.input} value={visitaForm.monto} onChangeText={t => setVisitaForm({ ...visitaForm, monto: t })} placeholder="0.00" keyboardType="numeric" />
-
             <Text style={styles.label}>Notas</Text>
             <TextInput style={[styles.input, styles.textarea]} value={visitaForm.notas} onChangeText={t => setVisitaForm({ ...visitaForm, notas: t })} placeholder="Detalles de la visita..." multiline numberOfLines={4} />
-
             <TouchableOpacity style={styles.btnPrimario} onPress={handleGuardarVisita} disabled={cargando}>
               <Text style={styles.btnPrimarioTexto}>{cargando ? 'Guardando...' : 'Guardar visita'}</Text>
             </TouchableOpacity>
-
             <TouchableOpacity style={styles.btnSalir} onPress={() => { supabase.auth.signOut(); setPantalla('login') }}>
               <Text style={styles.btnSalirTexto}>Cerrar sesión</Text>
             </TouchableOpacity>
@@ -231,12 +208,12 @@ export default function App() {
           <View style={{ padding: 16 }}>
             <View style={styles.kpiRow}>
               <View style={styles.kpiCard}>
-                <Text style={styles.kpiLabel}>Total visitas</Text>
-                <Text style={styles.kpiValor}>{visitas.length}</Text>
+                <Text style={styles.kpiLabel}>Visitas</Text>
+                <Text style={styles.kpiValor}>{visitasFiltradas.length}</Text>
               </View>
               <View style={styles.kpiCard}>
                 <Text style={styles.kpiLabel}>Ventas</Text>
-                <Text style={[styles.kpiValor, { color: '#16a34a' }]}>{visitas.filter(v => v.result === 'venta').length}</Text>
+                <Text style={[styles.kpiValor, { color: '#16a34a' }]}>{visitasFiltradas.filter(v => v.result === 'venta').length}</Text>
               </View>
               <View style={styles.kpiCard}>
                 <Text style={styles.kpiLabel}>Monto</Text>
@@ -244,12 +221,45 @@ export default function App() {
               </View>
             </View>
 
+            <View style={{ backgroundColor: 'white', borderRadius: 10, padding: 12, marginBottom: 12, elevation: 1 }}>
+              <FiltroRow
+                label="Fecha"
+                valor={filtroFecha}
+                onChange={setFiltroFecha}
+                color="#dc2626"
+                opciones={[{ value: 'todos', label: 'Todas' }, { value: 'hoy', label: 'Hoy' }, { value: 'semana', label: 'Últimos 7 días' }, { value: 'mes', label: 'Este mes' }]}
+              />
+              {esSupervisor && vendedores.length > 0 && (
+                <FiltroRow
+                  label="Vendedor"
+                  valor={filtroVendedor}
+                  onChange={setFiltroVendedor}
+                  color="#2563eb"
+                  opciones={[{ value: 'todos', label: 'Todos' }, ...vendedores.map(v => ({ value: v, label: v.split('@')[0] }))]}
+                />
+              )}
+              <FiltroRow
+                label="Tipo de cliente"
+                valor={filtroTipoCliente}
+                onChange={setFiltroTipoCliente}
+                color="#7c3aed"
+                opciones={[{ value: 'todos', label: 'Todos' }, { value: 'nuevo', label: 'Nuevo' }, { value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }, { value: 'potencial', label: 'Potencial' }]}
+              />
+              <FiltroRow
+                label="Resultado"
+                valor={filtroResultado}
+                onChange={setFiltroResultado}
+                color="#0f766e"
+                opciones={[{ value: 'todos', label: 'Todos' }, { value: 'venta', label: 'Venta' }, { value: 'cotizacion', label: 'Cotización' }, { value: 'no_interesado', label: 'No interesado' }, { value: 'otro', label: 'Otro' }]}
+              />
+            </View>
+
             {cargando ? (
               <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 20 }}>Cargando...</Text>
-            ) : visitas.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 20 }}>No hay visitas registradas</Text>
+            ) : visitasFiltradas.length === 0 ? (
+              <Text style={{ textAlign: 'center', color: '#64748b', marginTop: 20 }}>No hay visitas para este filtro</Text>
             ) : (
-              visitas.map(v => (
+              visitasFiltradas.map(v => (
                 <View key={v.id} style={styles.visitaCard}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <View style={{ flex: 1 }}>
