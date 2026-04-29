@@ -14,10 +14,14 @@ export default function App() {
   const [cargando, setCargando] = useState(false)
   const [filtroResultado, setFiltroResultado] = useState('todos')
   const [filtroTipoCliente, setFiltroTipoCliente] = useState('todos')
-  const [filtroFecha, setFiltroFecha] = useState('todos')
+  const [filtroFecha, setFiltroFecha] = useState('mes')
   const [filtroVendedor, setFiltroVendedor] = useState('todos')
+  const [mesActual, setMesActual] = useState(new Date())
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
 
   const esSupervisor = rol === 'supervisor'
+  const mesSiguienteDisabled = mesActual.getMonth() === new Date().getMonth() && mesActual.getFullYear() === new Date().getFullYear()
 
   async function cargarRol(email) {
     const { data, error } = await supabase
@@ -25,12 +29,8 @@ export default function App() {
       .select('rol')
       .eq('email', email)
       .single()
-
-    if (!error && data) {
-      setRol(data.rol)
-    } else {
-      setRol('vendor')
-    }
+    if (!error && data) setRol(data.rol)
+    else setRol('vendor')
   }
 
   async function handleLogin() {
@@ -73,17 +73,37 @@ export default function App() {
     if (pantalla === 'resumen' && usuario) cargarVisitas()
   }, [pantalla])
 
+  function parsearFecha(str) {
+    if (!str || str.length !== 10) return null
+    const [dia, mes, anio] = str.split('/')
+    if (!dia || !mes || !anio) return null
+    const fecha = new Date(`${anio}-${mes}-${dia}`)
+    return isNaN(fecha.getTime()) ? null : fecha
+  }
+
   function dentroDelRango(fecha) {
-    if (filtroFecha === 'todos') return true
-    const hoy = new Date()
     const f = new Date(fecha)
+    const hoy = new Date()
     if (filtroFecha === 'hoy') return f.toDateString() === hoy.toDateString()
     if (filtroFecha === 'semana') {
       const hace7 = new Date()
       hace7.setDate(hoy.getDate() - 7)
       return f >= hace7
     }
-    if (filtroFecha === 'mes') return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()
+    if (filtroFecha === 'mes') {
+      return f.getMonth() === mesActual.getMonth() && f.getFullYear() === mesActual.getFullYear()
+    }
+    if (filtroFecha === 'rango') {
+      const desde = parsearFecha(fechaDesde)
+      const hasta = parsearFecha(fechaHasta)
+      if (desde && f < desde) return false
+      if (hasta) {
+        const hastaFin = new Date(hasta)
+        hastaFin.setHours(23, 59, 59)
+        if (f > hastaFin) return false
+      }
+      return true
+    }
     return true
   }
 
@@ -238,7 +258,58 @@ export default function App() {
             </View>
 
             <View style={{ backgroundColor: 'white', borderRadius: 10, padding: 12, marginBottom: 12, elevation: 1 }}>
-              <FiltroRow label="Fecha" valor={filtroFecha} onChange={setFiltroFecha} color="#dc2626" opciones={[{ value: 'todos', label: 'Todas' }, { value: 'hoy', label: 'Hoy' }, { value: 'semana', label: 'Últimos 7 días' }, { value: 'mes', label: 'Este mes' }]} />
+              <FiltroRow
+                label="Fecha"
+                valor={filtroFecha}
+                onChange={setFiltroFecha}
+                color="#dc2626"
+                opciones={[{ value: 'todos', label: 'Todas' }, { value: 'hoy', label: 'Hoy' }, { value: 'semana', label: 'Últimos 7 días' }, { value: 'mes', label: 'Por mes' }, { value: 'rango', label: 'Rango' }]}
+              />
+
+              {filtroFecha === 'mes' && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 12 }}>
+                  <TouchableOpacity onPress={() => { const m = new Date(mesActual); m.setMonth(m.getMonth() - 1); setMesActual(m) }} style={{ padding: 8, borderRadius: 6, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: 'white' }}>
+                    <Text style={{ fontSize: 18, color: '#374151' }}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1e293b', minWidth: 150, textAlign: 'center' }}>
+                    {mesActual.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                  </Text>
+                  <TouchableOpacity onPress={() => { if (!mesSiguienteDisabled) { const m = new Date(mesActual); m.setMonth(m.getMonth() + 1); setMesActual(m) } }} style={{ padding: 8, borderRadius: 6, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: 'white', opacity: mesSiguienteDisabled ? 0.3 : 1 }}>
+                    <Text style={{ fontSize: 18, color: '#374151' }}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {filtroFecha === 'rango' && (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Formato: DD/MM/AAAA</Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>Desde</Text>
+                      <TextInput
+                        style={[styles.input, { fontSize: 13, padding: 8 }]}
+                        value={fechaDesde}
+                        onChangeText={setFechaDesde}
+                        placeholder="01/04/2026"
+                        keyboardType="numeric"
+                        maxLength={10}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>Hasta</Text>
+                      <TextInput
+                        style={[styles.input, { fontSize: 13, padding: 8 }]}
+                        value={fechaHasta}
+                        onChangeText={setFechaHasta}
+                        placeholder="30/04/2026"
+                        keyboardType="numeric"
+                        maxLength={10}
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
+
               {esSupervisor && vendedores.length > 0 && (
                 <FiltroRow label="Vendedor" valor={filtroVendedor} onChange={setFiltroVendedor} color="#2563eb" opciones={[{ value: 'todos', label: 'Todos' }, ...vendedores.map(v => ({ value: v, label: v.split('@')[0] }))]} />
               )}

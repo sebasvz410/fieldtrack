@@ -11,6 +11,7 @@ function DashboardSupervisor({ usuario, rol }) {
   const [filtroFecha, setFiltroFecha] = useState('mes')
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
+  const [mesActual, setMesActual] = useState(new Date())
   const [vendedores, setVendedores] = useState([])
 
   const esSupervisor = rol === 'supervisor'
@@ -25,7 +26,6 @@ function DashboardSupervisor({ usuario, rol }) {
 
   async function cargarVisitas() {
     setCargando(true)
-
     let query = supabase
       .from('visits')
       .select('*')
@@ -55,7 +55,7 @@ function DashboardSupervisor({ usuario, rol }) {
       return f >= hace7
     }
     if (filtroFecha === 'mes') {
-      return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()
+      return f.getMonth() === mesActual.getMonth() && f.getFullYear() === mesActual.getFullYear()
     }
     if (filtroFecha === 'rango') {
       const desde = fechaDesde ? new Date(fechaDesde) : null
@@ -91,10 +91,6 @@ function DashboardSupervisor({ usuario, rol }) {
     .filter(v => filtroTipoCliente === 'todos' || v.tipo_cliente === filtroTipoCliente)
     .filter(v => dentroDelRango(v.visited_at))
 
-  const totalVentas = visitas
-    .filter(v => v.result === 'venta')
-    .reduce((sum, v) => sum + (parseFloat(v.amount) || 0), 0)
-
   const colores = {
     venta: { bg: '#dcfce7', color: '#16a34a' },
     cotizacion: { bg: '#dbeafe', color: '#2563eb' },
@@ -113,6 +109,22 @@ function DashboardSupervisor({ usuario, rol }) {
 
   const inputStyle = { padding: '7px 10px', border: '1.5px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', outline: 'none' }
 
+  const mesAnteriorDisabled = false
+  const mesSiguienteDisabled = mesActual.getMonth() === new Date().getMonth() && mesActual.getFullYear() === new Date().getFullYear()
+
+  function irMesAnterior() {
+    const m = new Date(mesActual)
+    m.setMonth(m.getMonth() - 1)
+    setMesActual(m)
+  }
+
+  function irMesSiguiente() {
+    if (mesSiguienteDisabled) return
+    const m = new Date(mesActual)
+    m.setMonth(m.getMonth() + 1)
+    setMesActual(m)
+  }
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -124,10 +136,7 @@ function DashboardSupervisor({ usuario, rol }) {
             <span style={{ fontSize: '12px', padding: '4px 12px', background: '#dbeafe', color: '#2563eb', borderRadius: '20px', fontWeight: '500' }}>
               Vista supervisor
             </span>
-            <button
-              onClick={exportarExcel}
-              style={{ fontSize: '12px', padding: '6px 14px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
-            >
+            <button onClick={exportarExcel} style={{ fontSize: '12px', padding: '6px 14px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
               Exportar Excel
             </button>
           </div>
@@ -161,30 +170,29 @@ function DashboardSupervisor({ usuario, rol }) {
             {btnFecha('todos', 'Todas')}
             {btnFecha('hoy', 'Hoy')}
             {btnFecha('semana', 'Últimos 7 días')}
-            {btnFecha('mes', 'Este mes')}
+            {btnFecha('mes', 'Por mes')}
             {btnFecha('rango', 'Rango personalizado')}
           </div>
+
+          {filtroFecha === 'mes' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+              <button onClick={irMesAnterior} style={{ padding: '5px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '18px', color: '#374151' }}>‹</button>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', minWidth: '150px', textAlign: 'center' }}>
+                {mesActual.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+              </span>
+              <button onClick={irMesSiguiente} disabled={mesSiguienteDisabled} style={{ padding: '5px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: mesSiguienteDisabled ? 'default' : 'pointer', fontSize: '18px', color: '#374151', opacity: mesSiguienteDisabled ? 0.3 : 1 }}>›</button>
+            </div>
+          )}
+
           {filtroFecha === 'rango' && (
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '12px', color: '#6b7280' }}>Desde:</span>
-                <input
-                  type="date"
-                  value={fechaDesde}
-                  onChange={e => setFechaDesde(e.target.value)}
-                  defaultValue={primerDiaMes}
-                  style={inputStyle}
-                />
+                <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} defaultValue={primerDiaMes} style={inputStyle} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ fontSize: '12px', color: '#6b7280' }}>Hasta:</span>
-                <input
-                  type="date"
-                  value={fechaHasta}
-                  onChange={e => setFechaHasta(e.target.value)}
-                  defaultValue={ultimoDiaMes}
-                  style={inputStyle}
-                />
+                <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} defaultValue={ultimoDiaMes} style={inputStyle} />
               </div>
             </div>
           )}
@@ -240,9 +248,7 @@ function DashboardSupervisor({ usuario, rol }) {
                         {visita.tipo_cliente.charAt(0).toUpperCase() + visita.tipo_cliente.slice(1)} · {visita.rubro}
                       </div>
                     )}
-                    {esSupervisor && (
-                      <div style={{ fontSize: '12px', color: '#2563eb', marginBottom: '2px' }}>{visita.vendedor_email || 'Sin vendedor'}</div>
-                    )}
+                    {esSupervisor && <div style={{ fontSize: '12px', color: '#2563eb', marginBottom: '2px' }}>{visita.vendedor_email || 'Sin vendedor'}</div>}
                     <div style={{ fontSize: '12px', color: '#6b7280' }}>
                       {new Date(visita.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
