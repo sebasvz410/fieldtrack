@@ -7,11 +7,17 @@ function DashboardSupervisor({ usuario, rol }) {
   const [cargando, setCargando] = useState(true)
   const [filtroResultado, setFiltroResultado] = useState('todos')
   const [filtroVendedor, setFiltroVendedor] = useState('todos')
-  const [filtroFecha, setFiltroFecha] = useState('todos')
   const [filtroTipoCliente, setFiltroTipoCliente] = useState('todos')
+  const [filtroFecha, setFiltroFecha] = useState('mes')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [vendedores, setVendedores] = useState([])
 
   const esSupervisor = rol === 'supervisor'
+
+  const hoy = new Date()
+  const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0]
+  const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).toISOString().split('T')[0]
 
   useEffect(() => {
     cargarVisitas()
@@ -39,16 +45,25 @@ function DashboardSupervisor({ usuario, rol }) {
   }
 
   function dentroDelRango(fecha) {
-    if (filtroFecha === 'todos') return true
-    const hoy = new Date()
     const f = new Date(fecha)
+    const hoy = new Date()
+
     if (filtroFecha === 'hoy') return f.toDateString() === hoy.toDateString()
     if (filtroFecha === 'semana') {
       const hace7 = new Date()
       hace7.setDate(hoy.getDate() - 7)
       return f >= hace7
     }
-    if (filtroFecha === 'mes') return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()
+    if (filtroFecha === 'mes') {
+      return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()
+    }
+    if (filtroFecha === 'rango') {
+      const desde = fechaDesde ? new Date(fechaDesde) : null
+      const hasta = fechaHasta ? new Date(fechaHasta + 'T23:59:59') : null
+      if (desde && f < desde) return false
+      if (hasta && f > hasta) return false
+      return true
+    }
     return true
   }
 
@@ -96,6 +111,8 @@ function DashboardSupervisor({ usuario, rol }) {
     </button>
   )
 
+  const inputStyle = { padding: '7px 10px', border: '1.5px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', outline: 'none' }
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -131,7 +148,7 @@ function DashboardSupervisor({ usuario, rol }) {
         <div style={{ background: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Monto total</div>
           <div style={{ fontSize: '28px', fontWeight: '700', color: '#2563eb' }}>
-            ${totalVentas.toLocaleString()}
+            ${visitasFiltradas.filter(v => v.result === 'venta').reduce((sum, v) => sum + (parseFloat(v.amount) || 0), 0).toLocaleString()}
           </div>
         </div>
       </div>
@@ -140,32 +157,46 @@ function DashboardSupervisor({ usuario, rol }) {
 
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Filtrar por fecha</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
             {btnFecha('todos', 'Todas')}
             {btnFecha('hoy', 'Hoy')}
             {btnFecha('semana', 'Últimos 7 días')}
             {btnFecha('mes', 'Este mes')}
+            {btnFecha('rango', 'Rango personalizado')}
           </div>
+          {filtroFecha === 'rango' && (
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>Desde:</span>
+                <input
+                  type="date"
+                  value={fechaDesde}
+                  onChange={e => setFechaDesde(e.target.value)}
+                  defaultValue={primerDiaMes}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>Hasta:</span>
+                <input
+                  type="date"
+                  value={fechaHasta}
+                  onChange={e => setFechaHasta(e.target.value)}
+                  defaultValue={ultimoDiaMes}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {esSupervisor && vendedores.length > 0 && (
           <div style={{ marginBottom: '12px' }}>
             <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Filtrar por vendedor</div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setFiltroVendedor('todos')}
-                style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroVendedor === 'todos' ? '#2563eb' : '#f3f4f6', color: filtroVendedor === 'todos' ? 'white' : '#374151' }}
-              >
-                Todos
-              </button>
+              <button onClick={() => setFiltroVendedor('todos')} style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroVendedor === 'todos' ? '#2563eb' : '#f3f4f6', color: filtroVendedor === 'todos' ? 'white' : '#374151' }}>Todos</button>
               {vendedores.map(v => (
-                <button
-                  key={v}
-                  onClick={() => setFiltroVendedor(v)}
-                  style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroVendedor === v ? '#2563eb' : '#f3f4f6', color: filtroVendedor === v ? 'white' : '#374151' }}
-                >
-                  {v}
-                </button>
+                <button key={v} onClick={() => setFiltroVendedor(v)} style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroVendedor === v ? '#2563eb' : '#f3f4f6', color: filtroVendedor === v ? 'white' : '#374151' }}>{v}</button>
               ))}
             </div>
           </div>
@@ -175,11 +206,7 @@ function DashboardSupervisor({ usuario, rol }) {
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Filtrar por tipo de cliente</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['todos', 'nuevo', 'activo', 'inactivo', 'potencial'].map(t => (
-              <button
-                key={t}
-                onClick={() => setFiltroTipoCliente(t)}
-                style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroTipoCliente === t ? '#7c3aed' : '#f3f4f6', color: filtroTipoCliente === t ? 'white' : '#374151' }}
-              >
+              <button key={t} onClick={() => setFiltroTipoCliente(t)} style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroTipoCliente === t ? '#7c3aed' : '#f3f4f6', color: filtroTipoCliente === t ? 'white' : '#374151' }}>
                 {t === 'todos' ? 'Todos' : t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
             ))}
@@ -190,11 +217,7 @@ function DashboardSupervisor({ usuario, rol }) {
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Filtrar por resultado</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['todos', 'venta', 'cotizacion', 'no_interesado', 'otro'].map(f => (
-              <button
-                key={f}
-                onClick={() => setFiltroResultado(f)}
-                style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroResultado === f ? '#0f766e' : '#f3f4f6', color: filtroResultado === f ? 'white' : '#374151' }}
-              >
+              <button key={f} onClick={() => setFiltroResultado(f)} style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroResultado === f ? '#0f766e' : '#f3f4f6', color: filtroResultado === f ? 'white' : '#374151' }}>
                 {f === 'todos' ? 'Todos' : f === 'venta' ? 'Ventas' : f === 'cotizacion' ? 'Cotizaciones' : f === 'no_interesado' ? 'No interesados' : 'Otros'}
               </button>
             ))}
@@ -211,34 +234,22 @@ function DashboardSupervisor({ usuario, rol }) {
               <div key={visita.id} style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>
-                      {visita.cliente_nombre || 'Sin cliente'}
-                    </div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '2px' }}>{visita.cliente_nombre || 'Sin cliente'}</div>
                     {visita.tipo_cliente && (
                       <div style={{ fontSize: '11px', color: '#7c3aed', marginBottom: '2px' }}>
                         {visita.tipo_cliente.charAt(0).toUpperCase() + visita.tipo_cliente.slice(1)} · {visita.rubro}
                       </div>
                     )}
                     {esSupervisor && (
-                      <div style={{ fontSize: '12px', color: '#2563eb', marginBottom: '2px' }}>
-                        {visita.vendedor_email || 'Sin vendedor'}
-                      </div>
+                      <div style={{ fontSize: '12px', color: '#2563eb', marginBottom: '2px' }}>{visita.vendedor_email || 'Sin vendedor'}</div>
                     )}
                     <div style={{ fontSize: '12px', color: '#6b7280' }}>
                       {new Date(visita.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
-                    {visita.notes && (
-                      <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px' }}>
-                        {visita.notes}
-                      </div>
-                    )}
+                    {visita.notes && <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px' }}>{visita.notes}</div>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    {visita.amount && (
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>
-                        ${parseFloat(visita.amount).toLocaleString()}
-                      </span>
-                    )}
+                    {visita.amount && <span style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>${parseFloat(visita.amount).toLocaleString()}</span>}
                     <span style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '20px', fontWeight: '500', background: colores[visita.result]?.bg || '#f3f4f6', color: colores[visita.result]?.color || '#6b7280' }}>
                       {visita.result || 'sin resultado'}
                     </span>
