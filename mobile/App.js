@@ -5,6 +5,7 @@ import { supabase } from './supabase'
 export default function App() {
   const [pantalla, setPantalla] = useState('login')
   const [usuario, setUsuario] = useState(null)
+  const [rol, setRol] = useState(null)
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [verPassword, setVerPassword] = useState(false)
   const [visitaForm, setVisitaForm] = useState({ cliente: '', tipo_cliente: '', rubro: '', resultado: '', monto: '', notas: '' })
@@ -16,7 +17,21 @@ export default function App() {
   const [filtroFecha, setFiltroFecha] = useState('todos')
   const [filtroVendedor, setFiltroVendedor] = useState('todos')
 
-  const esSupervisor = usuario?.email === 'supervisor@fieldtrack.com'
+  const esSupervisor = rol === 'supervisor'
+
+  async function cargarRol(email) {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('rol')
+      .eq('email', email)
+      .single()
+
+    if (!error && data) {
+      setRol(data.rol)
+    } else {
+      setRol('vendor')
+    }
+  }
 
   async function handleLogin() {
     setCargando(true)
@@ -28,6 +43,7 @@ export default function App() {
       Alert.alert('Error', 'Email o contraseña incorrectos')
     } else {
       setUsuario(data.user)
+      await cargarRol(data.user.email)
       setPantalla('visita')
     }
     setCargando(false)
@@ -167,7 +183,7 @@ export default function App() {
     <View style={{ flex: 1, backgroundColor: '#f1f5f9' }}>
       <View style={styles.navbar}>
         <Image source={require('./assets/logoveneto.png')} style={{ height: 30, width: 100, resizeMode: 'contain' }} />
-        <Text style={styles.navUsuario}>{usuario.email.split('@')[0]}</Text>
+        <Text style={styles.navUsuario}>{usuario.email.split('@')[0]} · {esSupervisor ? 'Supervisor' : 'Vendedor'}</Text>
       </View>
 
       <View style={styles.tabBar}>
@@ -196,7 +212,7 @@ export default function App() {
             <TouchableOpacity style={styles.btnPrimario} onPress={handleGuardarVisita} disabled={cargando}>
               <Text style={styles.btnPrimarioTexto}>{cargando ? 'Guardando...' : 'Guardar visita'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.btnSalir} onPress={() => { supabase.auth.signOut(); setPantalla('login') }}>
+            <TouchableOpacity style={styles.btnSalir} onPress={() => { supabase.auth.signOut(); setPantalla('login'); setUsuario(null); setRol(null) }}>
               <Text style={styles.btnSalirTexto}>Cerrar sesión</Text>
             </TouchableOpacity>
           </View>
@@ -222,36 +238,12 @@ export default function App() {
             </View>
 
             <View style={{ backgroundColor: 'white', borderRadius: 10, padding: 12, marginBottom: 12, elevation: 1 }}>
-              <FiltroRow
-                label="Fecha"
-                valor={filtroFecha}
-                onChange={setFiltroFecha}
-                color="#dc2626"
-                opciones={[{ value: 'todos', label: 'Todas' }, { value: 'hoy', label: 'Hoy' }, { value: 'semana', label: 'Últimos 7 días' }, { value: 'mes', label: 'Este mes' }]}
-              />
+              <FiltroRow label="Fecha" valor={filtroFecha} onChange={setFiltroFecha} color="#dc2626" opciones={[{ value: 'todos', label: 'Todas' }, { value: 'hoy', label: 'Hoy' }, { value: 'semana', label: 'Últimos 7 días' }, { value: 'mes', label: 'Este mes' }]} />
               {esSupervisor && vendedores.length > 0 && (
-                <FiltroRow
-                  label="Vendedor"
-                  valor={filtroVendedor}
-                  onChange={setFiltroVendedor}
-                  color="#2563eb"
-                  opciones={[{ value: 'todos', label: 'Todos' }, ...vendedores.map(v => ({ value: v, label: v.split('@')[0] }))]}
-                />
+                <FiltroRow label="Vendedor" valor={filtroVendedor} onChange={setFiltroVendedor} color="#2563eb" opciones={[{ value: 'todos', label: 'Todos' }, ...vendedores.map(v => ({ value: v, label: v.split('@')[0] }))]} />
               )}
-              <FiltroRow
-                label="Tipo de cliente"
-                valor={filtroTipoCliente}
-                onChange={setFiltroTipoCliente}
-                color="#7c3aed"
-                opciones={[{ value: 'todos', label: 'Todos' }, { value: 'nuevo', label: 'Nuevo' }, { value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }, { value: 'potencial', label: 'Potencial' }]}
-              />
-              <FiltroRow
-                label="Resultado"
-                valor={filtroResultado}
-                onChange={setFiltroResultado}
-                color="#0f766e"
-                opciones={[{ value: 'todos', label: 'Todos' }, { value: 'venta', label: 'Venta' }, { value: 'cotizacion', label: 'Cotización' }, { value: 'no_interesado', label: 'No interesado' }, { value: 'otro', label: 'Otro' }]}
-              />
+              <FiltroRow label="Tipo de cliente" valor={filtroTipoCliente} onChange={setFiltroTipoCliente} color="#7c3aed" opciones={[{ value: 'todos', label: 'Todos' }, { value: 'nuevo', label: 'Nuevo' }, { value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }, { value: 'potencial', label: 'Potencial' }]} />
+              <FiltroRow label="Resultado" valor={filtroResultado} onChange={setFiltroResultado} color="#0f766e" opciones={[{ value: 'todos', label: 'Todos' }, { value: 'venta', label: 'Venta' }, { value: 'cotizacion', label: 'Cotización' }, { value: 'no_interesado', label: 'No interesado' }, { value: 'otro', label: 'Otro' }]} />
             </View>
 
             {cargando ? (
