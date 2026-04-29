@@ -7,22 +7,50 @@ import GestionVendedores from './GestionVendedores'
 
 function App() {
   const [usuario, setUsuario] = useState(null)
+  const [rol, setRol] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [pantalla, setPantalla] = useState('formulario')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUsuario(session?.user ?? null)
-      setCargando(false)
+      if (session?.user) {
+        setUsuario(session.user)
+        cargarRol(session.user.email)
+      } else {
+        setCargando(false)
+      }
     })
+
     supabase.auth.onAuthStateChange((_event, session) => {
-      setUsuario(session?.user ?? null)
+      if (session?.user) {
+        setUsuario(session.user)
+        cargarRol(session.user.email)
+      } else {
+        setUsuario(null)
+        setRol(null)
+      }
     })
   }, [])
+
+  async function cargarRol(email) {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('rol, nombre')
+      .eq('email', email)
+      .single()
+
+    if (!error && data) {
+      setRol(data.rol)
+    } else {
+      setRol('vendor')
+    }
+    setCargando(false)
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut()
     setUsuario(null)
+    setRol(null)
   }
 
   if (cargando) return (
@@ -34,9 +62,9 @@ function App() {
     </div>
   )
 
-  if (!usuario) return <Login onLogin={setUsuario} />
+  if (!usuario) return <Login onLogin={(user) => { setUsuario(user); cargarRol(user.email) }} />
 
-  const esSupervisor = usuario.email === 'supervisor@fieldtrack.com'
+  const esSupervisor = rol === 'supervisor'
 
   const navItems = [
     { id: 'formulario', label: 'Nueva visita' },
@@ -56,7 +84,7 @@ function App() {
             <button
               key={item.id}
               onClick={() => setPantalla(item.id)}
-              style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '500', fontSize: '14px', background: pantalla === item.id ? '#eff6ff' : 'transparent', color: pantalla === item.id ? '#2563eb' : '#64748b', transition: 'all .15s' }}
+              style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '500', fontSize: '14px', background: pantalla === item.id ? '#eff6ff' : 'transparent', color: pantalla === item.id ? '#2563eb' : '#64748b' }}
             >
               {item.label}
             </button>
@@ -84,8 +112,8 @@ function App() {
 
       <div style={{ padding: '28px 24px' }}>
         {pantalla === 'formulario' && <FormularioVisita usuario={usuario} />}
-        {pantalla === 'dashboard' && <DashboardSupervisor usuario={usuario} />}
-        {pantalla === 'vendedores' && <GestionVendedores />}
+        {pantalla === 'dashboard' && <DashboardSupervisor usuario={usuario} rol={rol} />}
+        {pantalla === 'vendedores' && esSupervisor && <GestionVendedores />}
       </div>
     </div>
   )

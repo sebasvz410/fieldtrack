@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import * as XLSX from 'xlsx'
 
-function DashboardSupervisor({ usuario }) {
+function DashboardSupervisor({ usuario, rol }) {
   const [visitas, setVisitas] = useState([])
   const [cargando, setCargando] = useState(true)
   const [filtroResultado, setFiltroResultado] = useState('todos')
@@ -11,7 +11,7 @@ function DashboardSupervisor({ usuario }) {
   const [filtroTipoCliente, setFiltroTipoCliente] = useState('todos')
   const [vendedores, setVendedores] = useState([])
 
-  const esSupervisor = usuario.email === 'supervisor@fieldtrack.com'
+  const esSupervisor = rol === 'supervisor'
 
   useEffect(() => {
     cargarVisitas()
@@ -76,7 +76,7 @@ function DashboardSupervisor({ usuario }) {
     .filter(v => filtroTipoCliente === 'todos' || v.tipo_cliente === filtroTipoCliente)
     .filter(v => dentroDelRango(v.visited_at))
 
-  const totalVentas = visitasFiltradas
+  const totalVentas = visitas
     .filter(v => v.result === 'venta')
     .reduce((sum, v) => sum + (parseFloat(v.amount) || 0), 0)
 
