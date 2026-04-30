@@ -81,6 +81,17 @@ export default function App() {
     return isNaN(fecha.getTime()) ? null : fecha
   }
 
+  function formatFecha(fecha) {
+    return new Date(fecha).toLocaleString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  }
+
   function dentroDelRango(fecha) {
     const f = new Date(fecha)
     const hoy = new Date()
@@ -286,25 +297,11 @@ export default function App() {
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>Desde</Text>
-                      <TextInput
-                        style={[styles.input, { fontSize: 13, padding: 8 }]}
-                        value={fechaDesde}
-                        onChangeText={setFechaDesde}
-                        placeholder="01/04/2026"
-                        keyboardType="numeric"
-                        maxLength={10}
-                      />
+                      <TextInput style={[styles.input, { fontSize: 13, padding: 8 }]} value={fechaDesde} onChangeText={setFechaDesde} placeholder="01/04/2026" keyboardType="numeric" maxLength={10} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>Hasta</Text>
-                      <TextInput
-                        style={[styles.input, { fontSize: 13, padding: 8 }]}
-                        value={fechaHasta}
-                        onChangeText={setFechaHasta}
-                        placeholder="30/04/2026"
-                        keyboardType="numeric"
-                        maxLength={10}
-                      />
+                      <TextInput style={[styles.input, { fontSize: 13, padding: 8 }]} value={fechaHasta} onChangeText={setFechaHasta} placeholder="30/04/2026" keyboardType="numeric" maxLength={10} />
                     </View>
                   </View>
                 </View>
@@ -329,7 +326,7 @@ export default function App() {
                       <Text style={styles.visitaCliente}>{v.cliente_nombre || 'Sin cliente'}</Text>
                       {esSupervisor && <Text style={styles.visitaVendedor}>{v.vendedor_email}</Text>}
                       {v.tipo_cliente && <Text style={{ fontSize: 11, color: '#7c3aed', marginBottom: 1 }}>{v.tipo_cliente} · {v.rubro}</Text>}
-                      <Text style={styles.visitaFecha}>{new Date(v.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                      <Text style={styles.visitaFecha}>{formatFecha(v.visited_at)}</Text>
                       {v.notes ? <Text style={styles.visitaNotas}>{v.notes}</Text> : null}
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>

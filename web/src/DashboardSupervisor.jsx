@@ -67,6 +67,17 @@ function DashboardSupervisor({ usuario, rol }) {
     return true
   }
 
+  function formatFecha(fecha) {
+    return new Date(fecha).toLocaleString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  }
+
   function exportarExcel() {
     const datos = visitasFiltradas.map(v => ({
       'Cliente': v.cliente_nombre || 'Sin cliente',
@@ -76,7 +87,7 @@ function DashboardSupervisor({ usuario, rol }) {
       'Resultado': v.result || 'Sin resultado',
       'Monto': v.amount || 0,
       'Notas': v.notes || '',
-      'Fecha': new Date(v.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      'Fecha y hora': formatFecha(v.visited_at)
     }))
 
     const hoja = XLSX.utils.json_to_sheet(datos)
@@ -109,21 +120,7 @@ function DashboardSupervisor({ usuario, rol }) {
 
   const inputStyle = { padding: '7px 10px', border: '1.5px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', outline: 'none' }
 
-  const mesAnteriorDisabled = false
   const mesSiguienteDisabled = mesActual.getMonth() === new Date().getMonth() && mesActual.getFullYear() === new Date().getFullYear()
-
-  function irMesAnterior() {
-    const m = new Date(mesActual)
-    m.setMonth(m.getMonth() - 1)
-    setMesActual(m)
-  }
-
-  function irMesSiguiente() {
-    if (mesSiguienteDisabled) return
-    const m = new Date(mesActual)
-    m.setMonth(m.getMonth() + 1)
-    setMesActual(m)
-  }
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -176,11 +173,11 @@ function DashboardSupervisor({ usuario, rol }) {
 
           {filtroFecha === 'mes' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-              <button onClick={irMesAnterior} style={{ padding: '5px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '18px', color: '#374151' }}>‹</button>
+              <button onClick={() => { const m = new Date(mesActual); m.setMonth(m.getMonth() - 1); setMesActual(m) }} style={{ padding: '5px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: '18px', color: '#374151' }}>‹</button>
               <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', minWidth: '150px', textAlign: 'center' }}>
                 {mesActual.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
               </span>
-              <button onClick={irMesSiguiente} disabled={mesSiguienteDisabled} style={{ padding: '5px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: mesSiguienteDisabled ? 'default' : 'pointer', fontSize: '18px', color: '#374151', opacity: mesSiguienteDisabled ? 0.3 : 1 }}>›</button>
+              <button onClick={() => { if (!mesSiguienteDisabled) { const m = new Date(mesActual); m.setMonth(m.getMonth() + 1); setMesActual(m) } }} disabled={mesSiguienteDisabled} style={{ padding: '5px 14px', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', cursor: mesSiguienteDisabled ? 'default' : 'pointer', fontSize: '18px', color: '#374151', opacity: mesSiguienteDisabled ? 0.3 : 1 }}>›</button>
             </div>
           )}
 
@@ -249,9 +246,7 @@ function DashboardSupervisor({ usuario, rol }) {
                       </div>
                     )}
                     {esSupervisor && <div style={{ fontSize: '12px', color: '#2563eb', marginBottom: '2px' }}>{visita.vendedor_email || 'Sin vendedor'}</div>}
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {new Date(visita.visited_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatFecha(visita.visited_at)}</div>
                     {visita.notes && <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px' }}>{visita.notes}</div>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
