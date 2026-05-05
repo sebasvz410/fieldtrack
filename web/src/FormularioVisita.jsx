@@ -81,6 +81,9 @@ function FormularioVisita({ usuario }) {
             <option value="supermercado">Supermercado</option>
             <option value="distribuidor">Distribuidor</option>
             <option value="gastronomico">Gastronómico</option>
+            <option value="heladeria">Heladería</option>
+            <option value="escuela">Escuela</option>
+            <option value="club">Club</option>
             <option value="otros">Otros</option>
           </select>
         </div>
@@ -92,6 +95,7 @@ function FormularioVisita({ usuario }) {
             <option value="venta">Venta</option>
             <option value="cotizacion">Cotización</option>
             <option value="no_interesado">No interesado</option>
+            <option value="tiene_mercaderia">Tiene mercadería</option>
             <option value="otro">Otro</option>
           </select>
         </div>
