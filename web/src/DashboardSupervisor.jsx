@@ -22,10 +22,11 @@ function DashboardSupervisor({ usuario, rol }) {
 
   useEffect(() => {
     cargarVisitas()
-  }, [])
+  }, [mesActual, filtroFecha, fechaDesde, fechaHasta])
 
   async function cargarVisitas() {
     setCargando(true)
+
     let query = supabase
       .from('visits')
       .select('*')
@@ -35,6 +36,27 @@ function DashboardSupervisor({ usuario, rol }) {
       query = query.eq('vendedor_email', usuario.email)
     }
 
+    if (filtroFecha === 'hoy') {
+      const inicioHoy = new Date()
+      inicioHoy.setHours(0, 0, 0, 0)
+      const finHoy = new Date()
+      finHoy.setHours(23, 59, 59, 999)
+      query = query.gte('visited_at', inicioHoy.toISOString()).lte('visited_at', finHoy.toISOString())
+    } else if (filtroFecha === 'semana') {
+      const hace7 = new Date()
+      hace7.setDate(hace7.getDate() - 7)
+      query = query.gte('visited_at', hace7.toISOString())
+    } else if (filtroFecha === 'mes') {
+      const inicio = new Date(mesActual.getFullYear(), mesActual.getMonth(), 1)
+      const fin = new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 0, 23, 59, 59)
+      query = query.gte('visited_at', inicio.toISOString()).lte('visited_at', fin.toISOString())
+    } else if (filtroFecha === 'rango' && fechaDesde && fechaHasta) {
+      const inicio = new Date(fechaDesde)
+      const fin = new Date(fechaHasta)
+      fin.setHours(23, 59, 59)
+      query = query.gte('visited_at', inicio.toISOString()).lte('visited_at', fin.toISOString())
+    }
+
     const { data, error } = await query
     if (!error) {
       setVisitas(data)
@@ -42,29 +64,6 @@ function DashboardSupervisor({ usuario, rol }) {
       setVendedores(emails)
     }
     setCargando(false)
-  }
-
-  function dentroDelRango(fecha) {
-    const f = new Date(fecha)
-    const hoy = new Date()
-
-    if (filtroFecha === 'hoy') return f.toDateString() === hoy.toDateString()
-    if (filtroFecha === 'semana') {
-      const hace7 = new Date()
-      hace7.setDate(hoy.getDate() - 7)
-      return f >= hace7
-    }
-    if (filtroFecha === 'mes') {
-      return f.getMonth() === mesActual.getMonth() && f.getFullYear() === mesActual.getFullYear()
-    }
-    if (filtroFecha === 'rango') {
-      const desde = fechaDesde ? new Date(fechaDesde) : null
-      const hasta = fechaHasta ? new Date(fechaHasta + 'T23:59:59') : null
-      if (desde && f < desde) return false
-      if (hasta && f > hasta) return false
-      return true
-    }
-    return true
   }
 
   function formatFecha(fecha) {
@@ -100,13 +99,13 @@ function DashboardSupervisor({ usuario, rol }) {
     .filter(v => filtroResultado === 'todos' || v.result === filtroResultado)
     .filter(v => filtroVendedor === 'todos' || v.vendedor_email === filtroVendedor)
     .filter(v => filtroTipoCliente === 'todos' || v.tipo_cliente === filtroTipoCliente)
-    .filter(v => dentroDelRango(v.visited_at))
 
   const colores = {
     venta: { bg: '#dcfce7', color: '#16a34a' },
     cotizacion: { bg: '#dbeafe', color: '#2563eb' },
     no_interesado: { bg: '#fee2e2', color: '#dc2626' },
-    otro: { bg: '#f3f4f6', color: '#6b7280' }
+    otro: { bg: '#f3f4f6', color: '#6b7280' },
+    tiene_mercaderia: { bg: '#fef3c7', color: '#d97706' }
   }
 
   const btnFecha = (val, label) => (
@@ -119,7 +118,6 @@ function DashboardSupervisor({ usuario, rol }) {
   )
 
   const inputStyle = { padding: '7px 10px', border: '1.5px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', outline: 'none' }
-
   const mesSiguienteDisabled = mesActual.getMonth() === new Date().getMonth() && mesActual.getFullYear() === new Date().getFullYear()
 
   return (
@@ -160,7 +158,6 @@ function DashboardSupervisor({ usuario, rol }) {
       </div>
 
       <div style={{ background: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '16px' }}>
-
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Filtrar por fecha</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
@@ -221,9 +218,9 @@ function DashboardSupervisor({ usuario, rol }) {
         <div style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '500' }}>Filtrar por resultado</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['todos', 'venta', 'cotizacion', 'no_interesado', 'otro'].map(f => (
+            {['todos', 'venta', 'cotizacion', 'no_interesado', 'tiene_mercaderia', 'otro'].map(f => (
               <button key={f} onClick={() => setFiltroResultado(f)} style={{ padding: '5px 12px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '500', background: filtroResultado === f ? '#0f766e' : '#f3f4f6', color: filtroResultado === f ? 'white' : '#374151' }}>
-                {f === 'todos' ? 'Todos' : f === 'venta' ? 'Ventas' : f === 'cotizacion' ? 'Cotizaciones' : f === 'no_interesado' ? 'No interesados' : 'Otros'}
+                {f === 'todos' ? 'Todos' : f === 'venta' ? 'Ventas' : f === 'cotizacion' ? 'Cotizaciones' : f === 'no_interesado' ? 'No interesados' : f === 'tiene_mercaderia' ? 'Tiene mercadería' : 'Otros'}
               </button>
             ))}
           </div>

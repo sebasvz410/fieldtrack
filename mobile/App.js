@@ -19,6 +19,9 @@ export default function App() {
   const [mesActual, setMesActual] = useState(new Date())
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
+  const [fechaDesdeActiva, setFechaDesdeActiva] = useState('')
+  const [fechaHastaActiva, setFechaHastaActiva] = useState('')
+  const [rangoAplicado, setRangoAplicado] = useState(false)
 
   const esSupervisor = rol === 'supervisor'
   const mesSiguienteDisabled = mesActual.getMonth() === new Date().getMonth() && mesActual.getFullYear() === new Date().getFullYear()
@@ -49,29 +52,37 @@ export default function App() {
     setCargando(false)
   }
 
-  async function cargarVisitas() {
-    setCargando(true)
-    let query = supabase
-      .from('visits')
-      .select('*')
-      .order('visited_at', { ascending: false })
+  async function cargarVisitas(desde = '', hasta = '') {
+  setCargando(true)
+  let query = supabase
+    .from('visits')
+    .select('*')
+    .order('visited_at', { ascending: false })
 
-    if (!esSupervisor) {
-      query = query.eq('vendedor_email', usuario.email)
-    }
-
-    const { data, error } = await query
-    if (!error) {
-      setVisitas(data)
-      const emails = [...new Set(data.map(v => v.vendedor_email).filter(Boolean))]
-      setVendedores(emails)
-    }
-    setCargando(false)
+  if (!esSupervisor) {
+    query = query.eq('vendedor_email', usuario.email)
   }
 
+  if (desde && hasta) {
+    const desdeISO = new Date(desde.split('/').reverse().join('-')).toISOString()
+    const hastaDate = new Date(hasta.split('/').reverse().join('-'))
+    hastaDate.setHours(23, 59, 59)
+    const hastaISO = hastaDate.toISOString()
+    query = query.gte('visited_at', desdeISO).lte('visited_at', hastaISO)
+  }
+
+  const { data, error } = await query
+  if (!error) {
+    setVisitas(data)
+    const emails = [...new Set(data.map(v => v.vendedor_email).filter(Boolean))]
+    setVendedores(emails)
+  }
+  setCargando(false)
+}
+  
   useEffect(() => {
     if (pantalla === 'resumen' && usuario) cargarVisitas()
-  }, [pantalla])
+  }, [pantalla, rangoAplicado])
 
   function parsearFecha(str) {
     if (!str || str.length !== 10) return null
@@ -92,6 +103,13 @@ export default function App() {
     })
   }
 
+  function formatearFechaInput(t) {
+    let v = t.replace(/\D/g, '')
+    if (v.length >= 3 && v.length <= 4) v = v.slice(0, 2) + '/' + v.slice(2)
+    if (v.length >= 5) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4, 8)
+    return v
+  }
+
   function dentroDelRango(fecha) {
     const f = new Date(fecha)
     const hoy = new Date()
@@ -105,8 +123,9 @@ export default function App() {
       return f.getMonth() === mesActual.getMonth() && f.getFullYear() === mesActual.getFullYear()
     }
     if (filtroFecha === 'rango') {
-      const desde = parsearFecha(fechaDesde)
-      const hasta = parsearFecha(fechaHasta)
+      const desde = parsearFecha(fechaDesdeActiva)
+      const hasta = parsearFecha(fechaHastaActiva)
+      if (!desde && !hasta) return true
       if (desde && f < desde) return false
       if (hasta) {
         const hastaFin = new Date(hasta)
@@ -155,7 +174,8 @@ export default function App() {
     venta: '#16a34a',
     cotizacion: '#2563eb',
     no_interesado: '#dc2626',
-    otro: '#64748b'
+    otro: '#64748b',
+    tiene_mercaderia: '#d97706'
   }
 
   const Selector = ({ label, opciones, valor, onChange }) => (
@@ -293,25 +313,48 @@ export default function App() {
 
               {filtroFecha === 'rango' && (
                 <View style={{ marginBottom: 12 }}>
-                  <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Formato: DD/MM/AAAA</Text>
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>Ingresá las fechas y presioná OK</Text>
+                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 8 }}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>Desde</Text>
-                      <TextInput style={[styles.input, { fontSize: 13, padding: 8 }]} value={fechaDesde} onChangeText={setFechaDesde} placeholder="01/04/2026" keyboardType="numeric" maxLength={10} />
+                      <TextInput
+                        style={[styles.input, { fontSize: 13, padding: 8 }]}
+                        value={fechaDesde}
+                        onChangeText={t => setFechaDesde(formatearFechaInput(t))}
+                        placeholder="DD/MM/AAAA"
+                        keyboardType="numeric"
+                        maxLength={10}
+                      />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>Hasta</Text>
-                      <TextInput style={[styles.input, { fontSize: 13, padding: 8 }]} value={fechaHasta} onChangeText={setFechaHasta} placeholder="30/04/2026" keyboardType="numeric" maxLength={10} />
+                      <TextInput
+                        style={[styles.input, { fontSize: 13, padding: 8 }]}
+                        value={fechaHasta}
+                        onChangeText={t => setFechaHasta(formatearFechaInput(t))}
+                        placeholder="DD/MM/AAAA"
+                        keyboardType="numeric"
+                        maxLength={10}
+                      />
                     </View>
                   </View>
-                </View>
-              )}
+                  
+                  <TouchableOpacity
+  onPress={() => {
+    console.log('Fecha desde:', fechaDesde)
+    console.log('Fecha hasta:', fechaHasta)
+    cargarVisitas(fechaDesde, fechaHasta)
+  }}
+  style={{ backgroundColor: '#2563eb', borderRadius: 8, padding: 10, alignItems: 'center' }}
+>
+  <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>OK — Aplicar filtro</Text>
+</TouchableOpacity>
 
               {esSupervisor && vendedores.length > 0 && (
                 <FiltroRow label="Vendedor" valor={filtroVendedor} onChange={setFiltroVendedor} color="#2563eb" opciones={[{ value: 'todos', label: 'Todos' }, ...vendedores.map(v => ({ value: v, label: v.split('@')[0] }))]} />
               )}
               <FiltroRow label="Tipo de cliente" valor={filtroTipoCliente} onChange={setFiltroTipoCliente} color="#7c3aed" opciones={[{ value: 'todos', label: 'Todos' }, { value: 'nuevo', label: 'Nuevo' }, { value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }, { value: 'potencial', label: 'Potencial' }]} />
-              <FiltroRow label="Resultado" valor={filtroResultado} onChange={setFiltroResultado} color="#0f766e" opciones={[{ value: 'todos', label: 'Todos' }, { value: 'venta', label: 'Venta' }, { value: 'cotizacion', label: 'Cotización' }, { value: 'no_interesado', label: 'No interesado' }, { value: 'otro', label: 'Otro' }]} />
+              <FiltroRow label="Resultado" valor={filtroResultado} onChange={setFiltroResultado} color="#0f766e" opciones={[{ value: 'todos', label: 'Todos' }, { value: 'venta', label: 'Venta' }, { value: 'cotizacion', label: 'Cotización' }, { value: 'no_interesado', label: 'No interesado' }, { value: 'tiene_mercaderia', label: 'Tiene mercadería' }, { value: 'otro', label: 'Otro' }]} />
             </View>
 
             {cargando ? (
